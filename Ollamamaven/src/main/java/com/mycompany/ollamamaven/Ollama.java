@@ -26,7 +26,6 @@ import java.util.logging.Logger;
 import java.util.Timer;
 import java.util.TimerTask;
 
-
 import javax.swing.border.EmptyBorder;
 import javax.swing.border.LineBorder;
 import org.json.JSONObject;
@@ -222,53 +221,20 @@ public class Ollama extends javax.swing.JFrame {
     }//GEN-LAST:event_btnIngresarActionPerformed
 
     private void btnIngresarMouseClicked(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_btnIngresarMouseClicked
+
         String textomodelo = jTextField1.getText();
         String nombremodelo = "gemma2:2b";
 
-        URL url = null;
-        try {
-            url = new URL("http://localhost:11434/api/generate");
-        } catch (MalformedURLException ex) {
-            JOptionPane.showMessageDialog(null, "Error: La URL es inválida.", "Error de URL", JOptionPane.ERROR_MESSAGE);
-            Logger.getLogger(Ollama.class.getName()).log(Level.SEVERE, null, ex);
+        if (textomodelo.isEmpty()) {
+            JOptionPane.showMessageDialog(null, "Por favor, escribe un mensaje antes de enviar.", "Error", JOptionPane.WARNING_MESSAGE);
             return;
         }
 
-        HttpURLConnection conexion = null;
-        try {
-            conexion = (HttpURLConnection) url.openConnection();
-        } catch (IOException ex) {
-            JOptionPane.showMessageDialog(null, "Error: No se pudo conectar con la API. Verifique la conexión y que el servidor esté disponible.", "Error de Conexión", JOptionPane.ERROR_MESSAGE);
-            Logger.getLogger(Ollama.class.getName()).log(Level.SEVERE, null, ex);
+        HttpURLConnection conexion = crearConexion(nombremodelo, textomodelo);
+        if (conexion == null) {
             return;
         }
 
-        try {
-            conexion.setRequestMethod("POST");
-        } catch (ProtocolException ex) {
-            JOptionPane.showMessageDialog(null, "Error: Problema con el método de la solicitud.", "Error de Protocolo", JOptionPane.ERROR_MESSAGE);
-            Logger.getLogger(Ollama.class.getName()).log(Level.SEVERE, null, ex);
-            return;
-        }
-
-        conexion.setRequestProperty("Content-Type", "application/json; utf-8");
-        conexion.setRequestProperty("Accept", "application/json");
-        conexion.setDoOutput(true);
-
-        String jsonInputString = String.format(
-                "{\"model\": \"%s\", \"prompt\":\"%s\", \"stream\": false}", nombremodelo, textomodelo
-        );
-
-        try (OutputStream os = conexion.getOutputStream()) {
-            byte[] input = jsonInputString.getBytes(StandardCharsets.UTF_8);
-            os.write(input, 0, input.length);
-        } catch (IOException ex) {
-            JOptionPane.showMessageDialog(null, "Error: No se pudo enviar los datos a la API.", "Error de Escritura", JOptionPane.ERROR_MESSAGE);
-            Logger.getLogger(Ollama.class.getName()).log(Level.SEVERE, null, ex);
-            return;
-        }
-
-        // Timer para mostrar un mensaje si la API tarda más de 10 segundos
         Timer timer = new Timer();
         timer.schedule(new TimerTask() {
             @Override
@@ -277,64 +243,93 @@ public class Ollama extends javax.swing.JFrame {
             }
         }, 10000);
 
-        int code = 0;
+        String response = obtenerRespuesta(conexion, timer);
+        if (response == null) {
+            return;
+        }
+
+        procesarRespuesta(response, textomodelo);
+    }
+
+    private HttpURLConnection crearConexion(String nombremodelo, String textomodelo) {
+        URL url;
+        try {
+            url = new URL("http://localhost:11434/api/generate");
+        } catch (MalformedURLException ex) {
+            JOptionPane.showMessageDialog(null, "Error: La URL es inválida.", "Error de URL", JOptionPane.ERROR_MESSAGE);
+            Logger.getLogger(Ollama.class.getName()).log(Level.SEVERE, null, ex);
+            return null;
+        }
+
+        HttpURLConnection conexion;
+        try {
+            conexion = (HttpURLConnection) url.openConnection();
+            conexion.setRequestMethod("POST");
+            conexion.setRequestProperty("Content-Type", "application/json; utf-8");
+            conexion.setRequestProperty("Accept", "application/json");
+            conexion.setDoOutput(true);
+
+            String jsonInputString = String.format(
+                    "{\"model\": \"%s\", \"prompt\":\"%s\", \"stream\": false}", nombremodelo, textomodelo
+            );
+
+            try (OutputStream os = conexion.getOutputStream()) {
+                byte[] input = jsonInputString.getBytes(StandardCharsets.UTF_8);
+                os.write(input, 0, input.length);
+            }
+        } catch (IOException ex) {
+            JOptionPane.showMessageDialog(null, "Error: No se pudo conectar con la API. Verifique la conexión y que el servidor esté disponible.", "Error de Conexión", JOptionPane.ERROR_MESSAGE);
+            Logger.getLogger(Ollama.class.getName()).log(Level.SEVERE, null, ex);
+            return null;
+        }
+
+        return conexion;
+    }
+
+    private String obtenerRespuesta(HttpURLConnection conexion, Timer timer) {
+        int code;
         try {
             code = conexion.getResponseCode();
-            timer.cancel(); 
+            timer.cancel();
         } catch (IOException ex) {
             timer.cancel();
             JOptionPane.showMessageDialog(null, "Error: No se pudo obtener respuesta de la API.", "Error de Respuesta", JOptionPane.ERROR_MESSAGE);
             Logger.getLogger(Ollama.class.getName()).log(Level.SEVERE, null, ex);
-            return;
+            return null;
         }
-        System.out.println("Response Code: " + code);
 
-        BufferedReader in = null;
-        try {
-            in = new BufferedReader(new InputStreamReader(conexion.getInputStream(), StandardCharsets.UTF_8));
-        } catch (IOException ex) {
-            JOptionPane.showMessageDialog(null, "Error: No se pudo leer la respuesta de la API.", "Error de Lectura", JOptionPane.ERROR_MESSAGE);
-            Logger.getLogger(Ollama.class.getName()).log(Level.SEVERE, null, ex);
-            return;
+        if (code != HttpURLConnection.HTTP_OK) {
+            JOptionPane.showMessageDialog(null, "Error: Código de respuesta " + code, "Error de Respuesta", JOptionPane.ERROR_MESSAGE);
+            return null;
         }
 
         StringBuilder response = new StringBuilder();
-        String line;
-        try {
+        try (BufferedReader in = new BufferedReader(new InputStreamReader(conexion.getInputStream(), StandardCharsets.UTF_8))) {
+            String line;
             while ((line = in.readLine()) != null) {
                 response.append(line);
             }
         } catch (IOException ex) {
-            JOptionPane.showMessageDialog(null, "Error: Ocurrió un problema al leer la respuesta.", "Error de Lectura", JOptionPane.ERROR_MESSAGE);
+            JOptionPane.showMessageDialog(null, "Error: No se pudo leer la respuesta de la API.", "Error de Lectura", JOptionPane.ERROR_MESSAGE);
             Logger.getLogger(Ollama.class.getName()).log(Level.SEVERE, null, ex);
+            return null;
         }
 
-        try {
-            if (in != null) {
-                in.close();
-            }
-        } catch (IOException ex) {
-            JOptionPane.showMessageDialog(null, "Error: No se pudo cerrar el flujo de lectura.", "Error de Cierre", JOptionPane.ERROR_MESSAGE);
-            Logger.getLogger(Ollama.class.getName()).log(Level.SEVERE, null, ex);
-        }
+        return response.toString();
+    }
 
-        System.out.println("Response Body: " + response.toString());
-    
-
-        JSONObject jsonResponse = new JSONObject(response.toString());
+    private void procesarRespuesta(String response, String textomodelo) {
+        JSONObject jsonResponse = new JSONObject(response);
         String responseText = jsonResponse.getString("response");
-        System.out.println("Response: " + responseText);
+
         text[i][j] = textomodelo;
-        j = j + 1;
+        j++;
         text[i][j] = responseText;
-        j = j + 1;
+        j++;
+
         jList1.setListData(text[i]);
-        tcolumn[i] = j;
-        jList1.setCellRenderer(new CustomListCellRenderer());
-        jTextField1.setText("");
-        conexion.disconnect();
-        // Ollama frame=new Ollama();
-        // frame.setVisible(true);
+        //Ollama frame = new Ollama();
+        //frame.setVisible(true);
 
 
     }//GEN-LAST:event_btnIngresarMouseClicked
@@ -379,7 +374,7 @@ public class Ollama extends javax.swing.JFrame {
             cnt = cnt + 1;
 
             i = cnt;
-        }else{
+        } else {
             j = 0;
             i = cnt;
         }
