@@ -23,6 +23,9 @@ import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import java.util.Timer;
+import java.util.TimerTask;
+
 
 import javax.swing.border.EmptyBorder;
 import javax.swing.border.LineBorder;
@@ -43,9 +46,9 @@ public class Ollama extends javax.swing.JFrame {
 
     public Ollama() {
         super("Ollama");
-        //setIconImage(new ImageIcon(getClass().getResource("llamma.png")).getImage());
+        //setIconImage(new ImageIcon(getClass().getResource("Unallama.png")).getImage());
         //Ollama frame=new Ollama();
-        //frame.setVisible(true);      
+        //frame.setVisible(true);
         initComponents();
         // Agregando un borde compuesto: EmptyBorder + LineBorder
         jList1.setBorder(BorderFactory.createCompoundBorder(
@@ -226,20 +229,29 @@ public class Ollama extends javax.swing.JFrame {
         try {
             url = new URL("http://localhost:11434/api/generate");
         } catch (MalformedURLException ex) {
+            JOptionPane.showMessageDialog(null, "Error: La URL es inválida.", "Error de URL", JOptionPane.ERROR_MESSAGE);
             Logger.getLogger(Ollama.class.getName()).log(Level.SEVERE, null, ex);
+            return;
         }
+
         HttpURLConnection conexion = null;
         try {
             conexion = (HttpURLConnection) url.openConnection();
         } catch (IOException ex) {
+            JOptionPane.showMessageDialog(null, "Error: No se pudo conectar con la API. Verifique la conexión y que el servidor esté disponible.", "Error de Conexión", JOptionPane.ERROR_MESSAGE);
             Logger.getLogger(Ollama.class.getName()).log(Level.SEVERE, null, ex);
+            return;
         }
+
         try {
             conexion.setRequestMethod("POST");
         } catch (ProtocolException ex) {
+            JOptionPane.showMessageDialog(null, "Error: Problema con el método de la solicitud.", "Error de Protocolo", JOptionPane.ERROR_MESSAGE);
             Logger.getLogger(Ollama.class.getName()).log(Level.SEVERE, null, ex);
+            return;
         }
-        conexion.setRequestProperty("Cotent-Type", "application/json; utf-8");
+
+        conexion.setRequestProperty("Content-Type", "application/json; utf-8");
         conexion.setRequestProperty("Accept", "application/json");
         conexion.setDoOutput(true);
 
@@ -251,14 +263,29 @@ public class Ollama extends javax.swing.JFrame {
             byte[] input = jsonInputString.getBytes(StandardCharsets.UTF_8);
             os.write(input, 0, input.length);
         } catch (IOException ex) {
+            JOptionPane.showMessageDialog(null, "Error: No se pudo enviar los datos a la API.", "Error de Escritura", JOptionPane.ERROR_MESSAGE);
             Logger.getLogger(Ollama.class.getName()).log(Level.SEVERE, null, ex);
+            return;
         }
+
+        // Timer para mostrar un mensaje si la API tarda más de 10 segundos
+        Timer timer = new Timer();
+        timer.schedule(new TimerTask() {
+            @Override
+            public void run() {
+                JOptionPane.showMessageDialog(null, "Respuesta completada", "Respuesta tardía, espere..", JOptionPane.INFORMATION_MESSAGE);
+            }
+        }, 10000);
 
         int code = 0;
         try {
             code = conexion.getResponseCode();
+            timer.cancel(); 
         } catch (IOException ex) {
+            timer.cancel();
+            JOptionPane.showMessageDialog(null, "Error: No se pudo obtener respuesta de la API.", "Error de Respuesta", JOptionPane.ERROR_MESSAGE);
             Logger.getLogger(Ollama.class.getName()).log(Level.SEVERE, null, ex);
+            return;
         }
         System.out.println("Response Code: " + code);
 
@@ -266,8 +293,11 @@ public class Ollama extends javax.swing.JFrame {
         try {
             in = new BufferedReader(new InputStreamReader(conexion.getInputStream(), StandardCharsets.UTF_8));
         } catch (IOException ex) {
+            JOptionPane.showMessageDialog(null, "Error: No se pudo leer la respuesta de la API.", "Error de Lectura", JOptionPane.ERROR_MESSAGE);
             Logger.getLogger(Ollama.class.getName()).log(Level.SEVERE, null, ex);
+            return;
         }
+
         StringBuilder response = new StringBuilder();
         String line;
         try {
@@ -275,15 +305,21 @@ public class Ollama extends javax.swing.JFrame {
                 response.append(line);
             }
         } catch (IOException ex) {
+            JOptionPane.showMessageDialog(null, "Error: Ocurrió un problema al leer la respuesta.", "Error de Lectura", JOptionPane.ERROR_MESSAGE);
             Logger.getLogger(Ollama.class.getName()).log(Level.SEVERE, null, ex);
         }
+
         try {
-            in.close();
+            if (in != null) {
+                in.close();
+            }
         } catch (IOException ex) {
+            JOptionPane.showMessageDialog(null, "Error: No se pudo cerrar el flujo de lectura.", "Error de Cierre", JOptionPane.ERROR_MESSAGE);
             Logger.getLogger(Ollama.class.getName()).log(Level.SEVERE, null, ex);
         }
 
         System.out.println("Response Body: " + response.toString());
+    
 
         JSONObject jsonResponse = new JSONObject(response.toString());
         String responseText = jsonResponse.getString("response");
@@ -343,7 +379,7 @@ public class Ollama extends javax.swing.JFrame {
             cnt = cnt + 1;
 
             i = cnt;
-        } else {
+        }else{
             j = 0;
             i = cnt;
         }
