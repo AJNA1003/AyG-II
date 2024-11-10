@@ -7,4 +7,5 @@
 6. Jesus subio el manual de usuario a github y resolvio algunos errores 
 7. Se realizó un correción por parte de Jazer
 8. Se realizó una correcion con respecto a un error en el codigo
-9. Santiago hizo una pull request para subir las Mejoras de codigo
+9. Santiago hizo una pull request para aparecer en el repositorio
+10. Santiago esta subiendo su archivo.....
