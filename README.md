@@ -6,4 +6,5 @@
 5. Jazer hizo una pull request para subir la Gestión de errores
 6. Jesus subio el manual de usuario a github (queria aparecer aqui)
 7. Se realizó un correción por parte de Jazer
-8. Santiago hizo una pull request para subir las Mejoras de codigo
+8. Se realizó una correcion con respecto a un error en el codigo
+9. 9. Santiago hizo una pull request para subir las Mejoras de codigo
