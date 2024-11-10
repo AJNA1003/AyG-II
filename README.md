@@ -1,1 +1,9 @@
 # AyG-II
+1. Se creo el README como archivo inicial
+2. Se subio desde la pagina de github.com el archivo trabajado en Laboratorio 1 para su uso en linea
+3. Mis contribuidores se añadieron al repositorio
+4. Jesus empezó con el manual de usuario
+5. Jazer hizo una pull request para subir la Gestión de errores
+6. Jesus subio el manual de usuario a github (queria aparecer aqui)
+7. Se realizó un correción por parte de Jazer
+8. Santiago hizo una pull request para subir las Mejoras de codigo
