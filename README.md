@@ -23,5 +23,5 @@ Procedimiento para descargar el programa:
 
   1. Seleccionar "<> Code"
   2. Seleccionar Download ZIP
-  3.1 Descomprimir el archivo descargado y abrir el archivo "Ollamamaven" desde la terminal disponible
-  3.2 Abrir directamente desde el descargado
+  3.  Descomprimir el archivo descargado y abrir el archivo "Ollamamaven" desde la terminal disponible
+  4.  (Variacion) Abrir directamente desde el descargado
